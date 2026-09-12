@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v*'
 
 jobs:
   # Compile the app once and publish the output as an artifact. Runs first;
