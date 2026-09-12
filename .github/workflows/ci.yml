@@ -80,19 +80,38 @@ jobs:
           fail-on-severity: high
           comment-summary-in-pr: on-failure
 
+  # Scan the repository (including git history) for committed secrets with
+  # Gitleaks. Runs in parallel with the other checks; a detected secret fails
+  # the job and blocks the build gate below. fetch-depth: 0 gives Gitleaks the
+  # full history to scan, not just the current tree.
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # Fan-in gate: the Docker build only runs after the security/validation jobs
   # pass. `if` uses always() so the job still evaluates on push (where
-  # dependency-review is skipped), then explicitly requires ci + codeql to have
-  # succeeded and dependency-review to be either successful or skipped.
+  # dependency-review is skipped), then explicitly requires ci + codeql +
+  # secret-scan to have succeeded and dependency-review to be successful or
+  # skipped.
   build:
     needs:
       - ci
       - codeql
       - dependency-review
+      - secret-scan
     if: >-
       always() &&
       needs.ci.result == 'success' &&
       needs.codeql.result == 'success' &&
+      needs.secret-scan.result == 'success' &&
       (needs.dependency-review.result == 'success' || needs.dependency-review.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
