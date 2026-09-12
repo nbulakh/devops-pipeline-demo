@@ -1,0 +1,12 @@
+node_modules
+# NOTE: `dist` is intentionally NOT ignored. The compiled output is produced in
+# CI and must be present in the build context so the Dockerfile can COPY it in.
+coverage
+.git
+.gitignore
+.github
+*.log
+.DS_Store
+Dockerfile
+.dockerignore
+npm-debug.log*

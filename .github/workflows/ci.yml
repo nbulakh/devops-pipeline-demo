@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  # Lint, test (with coverage gate), security audit, and app build.
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:coverage
+        env:
+          COVERAGE_MIN_LINES: '80'
+      - run: npm run test:integration
+      - run: npm run build
+      # Publish the compiled output so the docker build stage can consume the
+      # exact artifact that was built and tested here (build once, ship once).
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+          if-no-files-found: error
+
+  # GHAS code scanning. Runs in parallel with `ci` and `dependency-review`.
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - javascript-typescript
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # GHAS Dependency Review: blocks PRs that introduce vulnerable dependencies.
+  # Only runs on pull_request (the action diffs the PR base and head); on a
+  # push there is nothing to compare, so it is skipped and the `build` job
+  # tolerates that skip below.
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+
+  # Fan-in gate: the Docker build only runs after the security/validation jobs
+  # pass. `if` uses always() so the job still evaluates on push (where
+  # dependency-review is skipped), then explicitly requires ci + codeql to have
+  # succeeded and dependency-review to be either successful or skipped.
+  build:
+    needs:
+      - ci
+      - codeql
+      - dependency-review
+    if: >-
+      always() &&
+      needs.ci.result == 'success' &&
+      needs.codeql.result == 'success' &&
+      (needs.dependency-review.result == 'success' || needs.dependency-review.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # Bring in the compiled output produced by the `ci` job; the Dockerfile
+      # COPYs dist/ rather than compiling in-image.
+      - name: Download build output
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - run: docker build -t todo-api:ci .
