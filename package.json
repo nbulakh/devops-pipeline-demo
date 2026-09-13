@@ -15,11 +15,11 @@
     "test:integration": "vitest run test/integration"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
-    "@types/express": "^4.17.21",
+    "@types/express": "^5.0.6",
     "@types/node": "^22.5.0",
     "@types/supertest": "^6.0.2",
     "@vitest/coverage-v8": "^3.2.7",
