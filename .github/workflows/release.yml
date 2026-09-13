@@ -6,8 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  # Compile the app once and publish the output as an artifact. Runs first;
-  # a compile failure here prevents the publish job from running.
+  # Compile the app once and publish the output as an artifact
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -17,8 +16,10 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+      
       - run: npm ci
       - run: npm run build
+      
       - name: Upload build output
         uses: actions/upload-artifact@v4
         with:
@@ -27,8 +28,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # Download the compiled output, build the image (Dockerfile COPYs dist/), and
-  # publish to GHCR. needs: build ensures a failed build blocks publishing.
+  # Build the Docker image and push to container registry
   publish:
     needs: build
     runs-on: ubuntu-latest

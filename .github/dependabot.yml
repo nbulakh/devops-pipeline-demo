@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Keep npm dependencies up to date (security + version updates).
+  # Keep npm dependencies up to date (security and version updates)
   - package-ecosystem: npm
     directory: "/"
     schedule:
@@ -9,13 +9,13 @@ updates:
     labels:
       - dependencies
     groups:
-      # Batch minor/patch bumps into a single PR to reduce noise.
+      # Reduce noise by batching into a single PR
       minor-and-patch:
         update-types:
           - minor
           - patch
 
-  # Keep the GitHub Actions used in workflows up to date.
+  # Keep the GitHub Actions used in workflows up to date
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
