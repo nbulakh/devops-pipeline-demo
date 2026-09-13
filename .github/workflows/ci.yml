@@ -114,7 +114,7 @@ jobs:
       
       # Bring in the build output produced by the ci job
       - name: Download build output
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
