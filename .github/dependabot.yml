@@ -1,0 +1,24 @@
+version: 2
+updates:
+  # Keep npm dependencies up to date (security and version updates)
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    groups:
+      # Reduce noise by batching into a single PR
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Keep the GitHub Actions used in workflows up to date
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - github-actions
